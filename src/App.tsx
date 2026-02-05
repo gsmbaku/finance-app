@@ -9,6 +9,7 @@ import {
   GoalsPage,
   BudgetsPage,
   BankPage,
+  SettingsPage,
 } from '@/pages';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/bank" element={<BankPage />} />
           <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </MainLayout>
     </BrowserRouter>
