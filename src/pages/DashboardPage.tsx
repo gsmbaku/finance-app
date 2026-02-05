@@ -55,7 +55,7 @@ export function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Welcome back! Here's your financial overview.
+            Your financial overview for the last 30 days.
           </p>
         </div>
         <Link to="/transactions">
@@ -144,7 +144,7 @@ export function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader
             title="Spending Trend"
-            subtitle="This month's daily spending"
+            subtitle="Last 30 days"
             action={
               <Link to="/analytics">
                 <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>

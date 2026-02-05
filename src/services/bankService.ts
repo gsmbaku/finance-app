@@ -28,7 +28,7 @@ export interface PlaidTransaction {
   date: string;
   name: string;
   merchant_name: string | null;
-  category: string[];
+  category: string[] | null;
   pending: boolean;
 }
 
@@ -132,7 +132,8 @@ export async function removeInstitution(itemId: string): Promise<void> {
 }
 
 // Map Plaid category to app category
-function mapPlaidCategoryToAppCategory(plaidCategories: string[]): string {
+function mapPlaidCategoryToAppCategory(plaidCategories: string[] | null | undefined): string {
+  if (!plaidCategories || plaidCategories.length === 0) return 'other';
   const primary = plaidCategories[0]?.toLowerCase() || '';
   const secondary = plaidCategories[1]?.toLowerCase() || '';
 
@@ -193,7 +194,7 @@ export function convertPlaidTransactions(
       merchant: t.merchant_name || t.name,
       description: t.name,
       date: new Date(t.date),
-      notes: `Imported from bank - ${t.category.join(' > ')}`,
+      notes: `Imported from bank${t.category ? ' - ' + t.category.join(' > ') : ''}`,
       tags: ['bank-import'],
       plaidTransactionId: t.transaction_id,
     }));

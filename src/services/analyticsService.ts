@@ -5,6 +5,7 @@ import {
   eachDayOfInterval,
   format,
   subMonths,
+  subDays,
 } from 'date-fns';
 import { getTransactions, getSpendingByCategory, getTransactionStats } from './transactionService';
 import { getAllBudgetProgress, getBudgetSummary } from './budgetService';
@@ -151,10 +152,9 @@ export interface DashboardData {
 
 export async function getDashboardData(): Promise<DashboardData> {
   const now = new Date();
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
+  const thirtyDaysAgo = subDays(now, 30);
 
-  // Fetch all data in parallel
+  // Fetch all data in parallel using last 30 days for stats/charts
   const [
     stats,
     budgetSummary,
@@ -163,11 +163,11 @@ export async function getDashboardData(): Promise<DashboardData> {
     dailySpending,
     budgetProgress,
   ] = await Promise.all([
-    getTransactionStats(monthStart, monthEnd),
+    getTransactionStats(thirtyDaysAgo, now),
     getBudgetSummary(),
-    getSpendingByCategory(monthStart, monthEnd),
-    getTransactions({}).then((txs) => txs.slice(0, 5)),
-    getCurrentMonthDailySpending(),
+    getSpendingByCategory(thirtyDaysAgo, now),
+    getTransactions({}).then((txs) => txs.slice(0, 10)),
+    getDailySpending(thirtyDaysAgo, now),
     getAllBudgetProgress(),
   ]);
 

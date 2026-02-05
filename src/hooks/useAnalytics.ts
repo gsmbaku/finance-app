@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as analyticsService from '@/services/analyticsService';
+import * as transactionService from '@/services/transactionService';
 import type { DashboardData } from '@/services/analyticsService';
 
 export function useDashboardData() {
@@ -69,6 +70,52 @@ export function useTopMerchants(limit: number = 5) {
 
     fetchData();
   }, [limit]);
+
+  return { data, loading };
+}
+
+export function useSpendingByCategory() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof transactionService.getSpendingByCategory>>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const categories = await transactionService.getSpendingByCategory();
+        setData(categories);
+      } catch (err) {
+        console.error('Failed to fetch category spending:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return { data, loading };
+}
+
+export function useSpendingByDayOfWeek() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof analyticsService.getSpendingByDayOfWeek>>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const dayData = await analyticsService.getSpendingByDayOfWeek();
+        setData(dayData);
+      } catch (err) {
+        console.error('Failed to fetch day of week spending:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return { data, loading };
 }

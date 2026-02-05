@@ -18,6 +18,10 @@ export function useBankConnection() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncResult, setLastSyncResult] = useState<{
+    count: number;
+    message: string;
+  } | null>(null);
 
   // Fetch link token on mount
   useEffect(() => {
@@ -65,52 +69,6 @@ export function useBankConnection() {
     }
   };
 
-  // Handle successful Plaid Link connection
-  const onSuccess: PlaidLinkOnSuccess = useCallback(async (publicToken, metadata) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Exchange public token for access token
-      const { item_id } = await bankService.exchangeToken(publicToken, {
-        institution_id: metadata.institution?.institution_id || '',
-        name: metadata.institution?.name || 'Unknown Bank',
-      });
-
-      // Get accounts for the new connection
-      const { accounts } = await bankService.getAccounts(item_id);
-
-      // Add to connected banks
-      const newBank: ConnectedBank = {
-        itemId: item_id,
-        institutionName: metadata.institution?.name || 'Unknown Bank',
-        institutionId: metadata.institution?.institution_id || '',
-        connectedAt: new Date(),
-        accounts,
-      };
-
-      setConnectedBanks((prev) => [...prev, newBank]);
-    } catch (err) {
-      console.error('Failed to connect bank:', err);
-      setError('Failed to connect bank account');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Plaid Link configuration
-  const config: PlaidLinkOptions = {
-    token: linkToken,
-    onSuccess,
-    onExit: (err) => {
-      if (err) {
-        console.error('Plaid Link exit error:', err);
-      }
-    },
-  };
-
-  const { open, ready } = usePlaidLink(config);
-
   // Sync transactions from a connected bank
   const syncTransactions = useCallback(async (itemId: string): Promise<Transaction[]> => {
     try {
@@ -138,6 +96,11 @@ export function useBankConnection() {
         }
       }
 
+      setLastSyncResult({
+        count: savedTransactions.length,
+        message: `Imported ${savedTransactions.length} new transaction${savedTransactions.length !== 1 ? 's' : ''}`,
+      });
+
       return savedTransactions;
     } catch (err) {
       console.error('Failed to sync transactions:', err);
@@ -147,6 +110,55 @@ export function useBankConnection() {
       setIsSyncing(false);
     }
   }, []);
+
+  // Handle successful Plaid Link connection
+  const onSuccess: PlaidLinkOnSuccess = useCallback(async (publicToken, metadata) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Exchange public token for access token
+      const { item_id } = await bankService.exchangeToken(publicToken, {
+        institution_id: metadata.institution?.institution_id || '',
+        name: metadata.institution?.name || 'Unknown Bank',
+      });
+
+      // Get accounts for the new connection
+      const { accounts } = await bankService.getAccounts(item_id);
+
+      // Add to connected banks
+      const newBank: ConnectedBank = {
+        itemId: item_id,
+        institutionName: metadata.institution?.name || 'Unknown Bank',
+        institutionId: metadata.institution?.institution_id || '',
+        connectedAt: new Date(),
+        accounts,
+      };
+
+      setConnectedBanks((prev) => [...prev, newBank]);
+      setIsLoading(false);
+
+      // Auto-sync transactions immediately after connecting
+      await syncTransactions(item_id);
+    } catch (err) {
+      console.error('Failed to connect bank:', err);
+      setError('Failed to connect bank account');
+      setIsLoading(false);
+    }
+  }, [syncTransactions]);
+
+  // Plaid Link configuration
+  const config: PlaidLinkOptions = {
+    token: linkToken,
+    onSuccess,
+    onExit: (err) => {
+      if (err) {
+        console.error('Plaid Link exit error:', err);
+      }
+    },
+  };
+
+  const { open, ready } = usePlaidLink(config);
 
   // Sync all banks
   const syncAllBanks = useCallback(async (): Promise<Transaction[]> => {
@@ -184,6 +196,7 @@ export function useBankConnection() {
     isLoading,
     isSyncing,
     error,
+    lastSyncResult,
     linkReady: ready && !!linkToken,
     openPlaidLink,
     syncTransactions,
