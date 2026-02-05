@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Plus, ArrowRight, Target } from 'lucide-react';
 import { Card, CardHeader, CardContent, Button, ProgressBar } from '@/components/ui';
 import { SpendingPieChart, MonthlyTrendChart } from '@/components/charts';
 import { useDashboardData } from '@/hooks/useAnalytics';
-import { formatCurrency, formatDateShort } from '@/utils/formatters';
+import { useGoalProgress } from '@/hooks/useGoals';
+import { formatCurrency, formatDateShort, formatDaysRemaining } from '@/utils/formatters';
 import { getCategoryById } from '@/utils/categories';
 
 export function DashboardPage() {
   const { data, loading } = useDashboardData();
+  const { progress: goalProgress } = useGoalProgress();
 
   if (loading) {
     return (
@@ -281,6 +283,68 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Goals progress */}
+      <Card>
+        <CardHeader
+          title="Goals Progress"
+          subtitle="Track your financial goals"
+          action={
+            <Link to="/goals">
+              <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                Manage
+              </Button>
+            </Link>
+          }
+        />
+        <CardContent>
+          {goalProgress.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {goalProgress.slice(0, 3).map((gp) => (
+                <div
+                  key={gp.goal.id}
+                  className="p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                      <Target className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {gp.goal.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {formatCurrency(gp.goal.currentAmount)} / {formatCurrency(gp.goal.targetAmount)}
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-white tabular-nums">
+                      {gp.percentage.toFixed(0)}%
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={gp.percentage}
+                    max={100}
+                    size="sm"
+                    color={gp.onTrack ? 'success' : 'warning'}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {formatDaysRemaining(gp.daysRemaining)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-400 dark:text-gray-500 py-8">
+              <p>No goals set yet.</p>
+              <Link to="/goals">
+                <Button variant="secondary" size="sm" className="mt-2">
+                  Create Goal
+                </Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

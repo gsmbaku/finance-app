@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Message, ConversationContext } from '@/types';
 import { getTransactionStats, getSpendingByCategory, getTransactions } from './transactionService';
 import { getAllBudgetProgress } from './budgetService';
+import { getGoalsByStatus } from './goalsService';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -99,11 +100,12 @@ export async function buildConversationContext(): Promise<ConversationContext> {
   const monthEnd = endOfMonth(now);
 
   // Fetch all data in parallel
-  const [stats, categorySpending, recentTx, budgetProgress] = await Promise.all([
+  const [stats, categorySpending, recentTx, budgetProgress, activeGoals] = await Promise.all([
     getTransactionStats(monthStart, monthEnd),
     getSpendingByCategory(monthStart, monthEnd),
     getTransactions({}).then((txs) => txs.slice(0, 10)),
     getAllBudgetProgress(),
+    getGoalsByStatus('active'),
   ]);
 
   // Build budget status map
@@ -137,7 +139,12 @@ export async function buildConversationContext(): Promise<ConversationContext> {
       category: t.category,
       date: t.date,
     })),
-    activeGoals: [], // TODO: Implement when goals service is complete
+    activeGoals: activeGoals.map((g) => ({
+      name: g.name,
+      targetAmount: g.targetAmount,
+      currentAmount: g.currentAmount,
+      deadline: g.deadline,
+    })),
     userProfile: {
       financialKnowledge: 'intermediate',
     },
